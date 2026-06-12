@@ -1,5 +1,4 @@
-const BASE_URL = "http://localhost:5000/api/task";
-
+const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/task';
 const getToken = () => localStorage.getItem('ff_token');
 
 const authHeaders = () => ({
