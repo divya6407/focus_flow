@@ -47,35 +47,64 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    const res = await fetch(`${BASE_URL}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
-    if (data.success) {
-      localStorage.setItem('ff_token', data.token);
-      setToken(data.token);
-      setUser(data.data);
+    try {
+      const res = await fetch(`${BASE_URL}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      // Handle bad responses (400, 401, 500, etc.) safely
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        return { 
+          success: false, 
+          msg: errorData.msg || `Server error: ${res.status}` 
+        };
+      }
+
+      const data = await res.json();
+      if (data.success) {
+        localStorage.setItem('ff_token', data.token);
+        setToken(data.token);
+        setUser(data.data);
+      }
+      return data;
+    } catch (error) {
+      console.error("Login failed:", error);
+      return { success: false, msg: "Network error. Please try again." };
     }
-    return data;
   };
 
   const register = async (name, email, password) => {
-    const res = await fetch(`${BASE_URL}/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password }),
-    });
-    const data = await res.json();
-    if (data.success) {
-      localStorage.setItem('ff_token', data.token);
-      setToken(data.token);
-      setUser(data.data);
-    }
-    return data;
-  };
+    try {
+      const res = await fetch(`${BASE_URL}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+      });
 
+      // Handle bad responses safely
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        return { 
+          success: false, 
+          msg: errorData.msg || `Server error: ${res.status}` 
+        };
+      }
+
+      const data = await res.json();
+      if (data.success) {
+        localStorage.setItem('ff_token', data.token);
+        setToken(data.token);
+        setUser(data.data);
+      }
+      return data;
+    } catch (error) {
+      console.error("Registration failed:", error);
+      return { success: false, msg: "Network error. Please try again." };
+    }
+  };
   const logout = () => {
     localStorage.removeItem('ff_token');
     setToken(null);
