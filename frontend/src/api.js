@@ -1,4 +1,4 @@
-const BASE_URL ="https://focus-flow-9je5.onrender.com";
+const BASE_URL ="https://focus-flow-9je5.onrender.com/api/task";
 
 export const gettask= async()=>
 {
