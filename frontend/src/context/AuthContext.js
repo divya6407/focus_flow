@@ -2,7 +2,23 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext(null);
 
-const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/auth';
+// 1. One Base URL to rule them all (points to /api)
+const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
+// 2. Derived endpoints to avoid variable clashing
+const AUTH_URL = `${BASE_URL}/auth`;
+const TASK_URL = `${BASE_URL}/task`;
+
+const getToken = () => localStorage.getItem('ff_token');
+
+const authHeaders = () => ({
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${getToken()}`,
+});
+
+// ==========================================
+// AUTHENTICATION PROVIDER
+// ==========================================
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem('ff_token'));
@@ -18,7 +34,7 @@ export const AuthProvider = ({ children }) => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout
 
-    fetch(`${BASE_URL}/me`, {
+    fetch(`${AUTH_URL}/me`, {
       headers: { Authorization: `Bearer ${storedToken}` },
       signal: controller.signal,
     })
@@ -31,7 +47,6 @@ export const AuthProvider = ({ children }) => {
         }
       })
       .catch(() => {
-        // On error or timeout, clear token so user sees login page
         localStorage.removeItem('ff_token');
         setToken(null);
       })
@@ -48,13 +63,12 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const res = await fetch(`${BASE_URL}/login`, {
+      const res = await fetch(`${AUTH_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 
-      // Handle bad responses (400, 401, 500, etc.) safely
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         return { 
@@ -78,13 +92,12 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (name, email, password) => {
     try {
-      const res = await fetch(`${BASE_URL}/register`, {
+      const res = await fetch(`${AUTH_URL}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password }),
       });
 
-      // Handle bad responses safely
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         return { 
@@ -105,6 +118,7 @@ export const AuthProvider = ({ children }) => {
       return { success: false, msg: "Network error. Please try again." };
     }
   };
+
   const logout = () => {
     localStorage.removeItem('ff_token');
     setToken(null);
@@ -119,3 +133,50 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
+
+// ==========================================
+// TASK API FUNCTIONS
+// ==========================================
+export const gettask = async () => {
+    const res = await fetch(`${TASK_URL}`, { headers: authHeaders() });
+    return res.json();
+};
+
+export const gettaskbyid = async (id) => {
+    const res = await fetch(`${TASK_URL}/${id}`, { headers: authHeaders() });
+    return res.json();
+};
+
+export const searchtask = async ({ priority, keyword }) => {
+    const params = new URLSearchParams();
+    if (priority) params.append("priority", priority);
+    if (keyword) params.append("keyword", keyword);
+    const res = await fetch(`${TASK_URL}/search?${params}`, { headers: authHeaders() });
+    return res.json();
+};
+
+export const posttask = async (taskdata) => {
+    const res = await fetch(`${TASK_URL}`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify(taskdata),
+    });
+    return res.json();
+};
+
+export const updatetask = async (id, taskdata) => {
+    const res = await fetch(`${TASK_URL}/${id}`, {
+        method: "PUT",
+        headers: authHeaders(),
+        body: JSON.stringify(taskdata),
+    });
+    return res.json();
+};
+
+export const deletetask = async (id) => {
+    const res = await fetch(`${TASK_URL}/${id}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+    });
+    return res.json();
+};
