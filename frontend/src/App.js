@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { CheckSquare, Menu } from 'lucide-react';
+import { CheckSquare, Menu, LogOut } from 'lucide-react';
 import { gettask, posttask, deletetask, updatetask, searchtask } from './api.js';
 import TaskList from './components/TaskList.jsx';
 import TaskForm from './components/TaskForm.jsx';
 import SearchBar from './components/SearchBar.jsx';
+import AuthPage from './components/AuthPage.jsx';
+import { AuthProvider, useAuth } from './context/AuthContext.js';
 
 const StatCard = ({ icon, label, value, sub, accent }) => (
   <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-4 flex items-center gap-4 flex-1 min-w-0">
@@ -18,15 +20,14 @@ const StatCard = ({ icon, label, value, sub, accent }) => (
   </div>
 );
 
-const App = () => {
+const Dashboard = () => {
+  const { user, logout } = useAuth();
   const [task, settask] = useState([]);
   const [completed, setcompleted] = useState([]);
   const [editing, setediting] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  useEffect(() => {
-    fetchtask();
-  }, []);
+  useEffect(() => { fetchtask(); }, []);
 
   const fetchtask = async () => {
     const res = await gettask();
@@ -46,9 +47,7 @@ const App = () => {
     if (res.success || res.sucess) settask(task.filter((t) => t.id !== id));
   };
 
-  const handleupdating = (taskdata) => {
-    setediting(taskdata);
-  };
+  const handleupdating = (taskdata) => { setediting(taskdata); };
 
   const handleupdate = async (id, taskdata) => {
     const res = await updatetask(id, taskdata);
@@ -60,8 +59,7 @@ const App = () => {
 
   const handlesearch = async ({ priority, keyword }) => {
     const res = await searchtask({ priority, keyword });
-    const activeTasks = res.data.filter((t) => !t.completed);
-    settask(activeTasks);
+    settask(res.data.filter((t) => !t.completed));
   };
 
   const handlecomplete = async (taskdata) => {
@@ -88,44 +86,47 @@ const App = () => {
           </div>
         </div>
 
-        <button
-          className="md:hidden text-[#888] hover:text-white"
-          onClick={() => setMobileMenuOpen((prev) => !prev)}
-          aria-label="Toggle mobile menu"
-        >
-          <Menu size={22} />
-        </button>
+        <div className="flex items-center gap-3">
+          {user && (
+            <span className="hidden md:block text-[#555] text-sm">
+              Hey, <span className="text-[#999]">{user.name}</span>
+            </span>
+          )}
+          <button
+            onClick={logout}
+            className="flex items-center gap-2 text-[#666] hover:text-[#22c55e] border border-[#2a2a2a] hover:border-[#22c55e]/40 rounded-lg px-3 py-1.5 text-sm transition-colors"
+            title="Sign out"
+          >
+            <LogOut size={14} />
+            <span className="hidden md:inline">Sign out</span>
+          </button>
+          <button
+            className="md:hidden text-[#888] hover:text-white"
+            onClick={() => setMobileMenuOpen((prev) => !prev)}
+            aria-label="Toggle mobile menu"
+          >
+            <Menu size={22} />
+          </button>
+        </div>
       </header>
 
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 space-y-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatCard
             icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 text-[#22c55e]"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>}
-            label="Total Tasks"
-            value={total}
-            sub="All tasks in your list"
-            accent="bg-[#22c55e]/20"
+            label="Total Tasks" value={total} sub="All tasks in your list" accent="bg-[#22c55e]/20"
           />
           <StatCard
             icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 text-[#f59e0b]"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
-            label="Active Tasks"
-            value={task.length}
-            sub="Tasks not completed"
-            accent="bg-[#f59e0b]/20"
+            label="Active Tasks" value={task.length} sub="Tasks not completed" accent="bg-[#f59e0b]/20"
           />
           <StatCard
             icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 text-[#22c55e]"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>}
-            label="Completed Tasks"
-            value={completed.length}
-            sub="Tasks you completed"
-            accent="bg-[#22c55e]/20"
+            label="Completed Tasks" value={completed.length} sub="Tasks you completed" accent="bg-[#22c55e]/20"
           />
           <StatCard
             icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5 text-[#22c55e]"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>}
-            label="Completion Rate"
-            value={`${completionRate}%`}
-            sub="Great progress!"
-            accent="bg-[#22c55e]/20"
+            label="Completion Rate" value={`${completionRate}%`} sub="Great progress! 🎉" accent="bg-[#22c55e]/20"
           />
         </div>
 
@@ -142,35 +143,12 @@ const App = () => {
           </div>
         </div>
 
-        {mobileMenuOpen && (
-          <div className="md:hidden bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-4 space-y-3">
-            <p className="text-[#888] text-sm">Mobile Menu</p>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-[#111] rounded-xl p-3 text-center">
-                <p className="text-[#888] text-xs">Total</p>
-                <p className="text-white text-xl font-semibold">{total}</p>
-              </div>
-              <div className="bg-[#111] rounded-xl p-3 text-center">
-                <p className="text-[#888] text-xs">Completed</p>
-                <p className="text-white text-xl font-semibold">{completed.length}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr] gap-6">
           <TaskForm onsubmit={handlecreate} onediting={editing} updatetask={handleupdate} />
-
           <div className="space-y-6">
             <SearchBar onsearch={handlesearch} />
             <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl overflow-hidden">
-              <TaskList
-                task={task}
-                ondelete={handledelete}
-                onupdate={handleupdating}
-                onfinished={handlecomplete}
-                showComplete={false}
-              />
+              <TaskList task={task} ondelete={handledelete} onupdate={handleupdating} onfinished={handlecomplete} showComplete={false} />
             </div>
           </div>
         </div>
@@ -183,17 +161,36 @@ const App = () => {
               {completed.length}
             </span>
           </div>
-          <TaskList
-            task={completed}
-            ondelete={handledelete}
-            onupdate={handleupdating}
-            onfinished={handlecomplete}
-            showComplete
-          />
+          <TaskList task={completed} ondelete={handledelete} onupdate={handleupdating} onfinished={handlecomplete} showComplete />
         </div>
       </div>
     </div>
   );
 };
+
+const AppContent = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#111111] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 bg-[#22c55e] rounded-xl flex items-center justify-center animate-pulse">
+            <CheckSquare size={20} className="text-black" />
+          </div>
+          <p className="text-[#555] text-sm">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return user ? <Dashboard /> : <AuthPage />;
+};
+
+const App = () => (
+  <AuthProvider>
+    <AppContent />
+  </AuthProvider>
+);
 
 export default App;
