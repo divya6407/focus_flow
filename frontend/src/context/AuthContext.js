@@ -133,17 +133,19 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
-
 // ==========================================
-// TASK API FUNCTIONS
+// TASK API FUNCTIONS (Airtight Endpoints)
 // ==========================================
 export const gettask = async () => {
-    const res = await fetch(`${TASK_URL}`, { headers: authHeaders() });
+    // Changes from `${TASK_URL}` to `${TASK_URL}/`
+    const res = await fetch(`${TASK_URL}/`, { headers: authHeaders() });
+    if (!res.ok) return { success: false, msg: `Error: ${res.status}` };
     return res.json();
 };
 
 export const gettaskbyid = async (id) => {
     const res = await fetch(`${TASK_URL}/${id}`, { headers: authHeaders() });
+    if (!res.ok) return { success: false, msg: `Error: ${res.status}` };
     return res.json();
 };
 
@@ -152,15 +154,22 @@ export const searchtask = async ({ priority, keyword }) => {
     if (priority) params.append("priority", priority);
     if (keyword) params.append("keyword", keyword);
     const res = await fetch(`${TASK_URL}/search?${params}`, { headers: authHeaders() });
+    if (!res.ok) return { success: false, msg: `Error: ${res.status}` };
     return res.json();
 };
 
 export const posttask = async (taskdata) => {
-    const res = await fetch(`${TASK_URL}`, {
+    // Changes from `${TASK_URL}` to `${TASK_URL}/`
+    const res = await fetch(`${TASK_URL}/`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify(taskdata),
     });
+    if (!res.ok) {
+        const errorText = await res.text().catch(() => "");
+        console.error("Task submission server error raw text:", errorText);
+        return { success: false, msg: `Server error: ${res.status}` };
+    }
     return res.json();
 };
 
@@ -170,6 +179,7 @@ export const updatetask = async (id, taskdata) => {
         headers: authHeaders(),
         body: JSON.stringify(taskdata),
     });
+    if (!res.ok) return { success: false, msg: `Error: ${res.status}` };
     return res.json();
 };
 
@@ -178,5 +188,6 @@ export const deletetask = async (id) => {
         method: "DELETE",
         headers: authHeaders(),
     });
+    if (!res.ok) return { success: false, msg: `Error: ${res.status}` };
     return res.json();
 };
