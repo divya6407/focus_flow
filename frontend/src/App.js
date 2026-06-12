@@ -30,12 +30,11 @@ const Dashboard = () => {
   useEffect(() => { fetchtask(); }, []);
 
   const fetchtask = async () => {
-    const res = await gettask();
-    const activeTasks = res.data.filter((t) => !t.completed);
-    const doneTasks = res.data.filter((t) => t.completed);
-    settask(activeTasks);
-    setcompleted(doneTasks);
-  };
+  const res = await gettask();
+  if (!res || !res.data) return;  // ← add this
+  settask(res.data.filter(t => !t.completed));
+  setcompleted(res.data.filter(t => t.completed));
+};
 
   const handlecreate = async (taskdata) => {
     const res = await posttask(taskdata);
