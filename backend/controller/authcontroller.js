@@ -41,29 +41,34 @@ export const register = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-  if (!email || !password) {
-    return res.status(400).json({ success: false, msg: 'Email and password are required' });
+    if (!email || !password) {
+      return res.status(400).json({ success: false, msg: 'Email and password are required' });
+    }
+
+    const user = userStore.users.find(u => u.email === email.toLowerCase());
+    if (!user) {
+      return res.status(401).json({ success: false, msg: 'Invalid email or password' });
+    }
+
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) {
+      return res.status(401).json({ success: false, msg: 'Invalid email or password' });
+    }
+
+    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+
+    return res.status(200).json({
+      success: true,
+      data: { id: user.id, name: user.name, email: user.email },
+      token,
+    });
+  } catch (error) {
+    console.error("Backend login crash:", error);
+    return res.status(500).json({ success: false, msg: 'Internal server error' });
   }
-
-  const user = userStore.users.find(u => u.email === email.toLowerCase());
-  if (!user) {
-    return res.status(401).json({ success: false, msg: 'Invalid email or password' });
-  }
-
-  const match = await bcrypt.compare(password, user.password);
-  if (!match) {
-    return res.status(401).json({ success: false, msg: 'Invalid email or password' });
-  }
-
-  const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
-
-  res.status(200).json({
-    success: true,
-    data: { id: user.id, name: user.name, email: user.email },
-    token,
-  });
 };
 
 export const getme = (req, res) => {
